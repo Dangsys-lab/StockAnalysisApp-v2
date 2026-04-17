@@ -1,0 +1,42 @@
+name: StockAnalysisApp
+options:
+  bundleIdPrefix: com.dangsys
+  deploymentTarget:
+    iOS: "16.0"
+  xcodeVersion: "16.0"
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    TARGETED_DEVICE_FAMILY: "1"
+    INFOPLIST_FILE: StockAnalysisApp/Info.plist
+
+targets:
+  StockAnalysisApp:
+    type: application
+    platform: iOS
+    sources:
+      - StockAnalysisApp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.dangsys.stockanalyzer
+        MARKETING_VERSION: "2.0.0"
+        CURRENT_PROJECT_VERSION: "4"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        INFOPLIST_FILE: StockAnalysisApp/Info.plist
+        CODE_SIGN_STYLE: Manual
+        GENERATE_INFOPLIST_FILE: false
+        DEVELOPMENT_TEAM: 6N5DT3K8L9
+    configs:
+      Debug:
+        CODE_SIGN_IDENTITY: ""
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGNING_ALLOWED: NO
+        PROVISIONING_PROFILE_SPECIFIER: ""
+      Release:
+        CODE_SIGN_IDENTITY: "Apple Distribution"
+        CODE_SIGNING_REQUIRED: YES
+        CODE_SIGNING_ALLOWED: YES
+        PROVISIONING_PROFILE_SPECIFIER: StockAnalyzer_Dist

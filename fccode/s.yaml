@@ -1,0 +1,37 @@
+edition: 3.0.0
+name: fc3-example
+access: default
+resources:
+  fcDemo:
+    component: fc3
+    props:
+      region: cn-hangzhou
+      handler: server.handler
+      role: ''
+      disableOndemand: false
+      description: ''
+      timeout: 60
+      diskSize: 512
+      internetAccess: true
+      layers:
+        - acs:fc:cn-hangzhou:1074373472555669:layers/stock-layer/versions/2
+        - acs:fc:cn-hangzhou:official:layers/Python3x-Pandas2x/versions/1
+      resourceGroupId: rg-acfmv5bhtmmbffi
+      instanceIsolationMode: SHARE
+      functionName: stock
+      sessionAffinity: NONE
+      runtime: python3.10
+      cpu: 0.35
+      memorySize: 512
+      code: ./stock
+      triggers:
+        - triggerConfig:
+            methods:
+              - GET
+              - POST
+            authType: anonymous
+            disableURLInternet: false
+          triggerName: trigger-019dg662
+          description: ''
+          qualifier: LATEST
+          triggerType: http

@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" style="default">
+    <title>股票技术分析工具 v2.0</title>
+    <meta name="description" content="专业级股票技术分析工具，17+技术指标、市场环境感知、自选股管理。所有数据为客观数值，不构成投资建议。">
+    
+    <link rel="stylesheet" href="/static/css/main_v2.css">
+</head>
+<body>
+<div class="app-wrapper">
+    <div class="app-container">
+        <!-- 顶部导航 -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <div class="logo-icon">📊</div>
+                    <div class="app-title">股票分析工具</div>
+                    <span class="version-badge" id="versionBadge">免费版</span>
+                </div>
+                <nav class="main-nav">
+                    <a href="/" class="nav-link active">首页</a>
+                    <a href="/portfolio" class="nav-link">自选</a>
+                    <button onclick="showUpgradeModal()" class="btn-upgrade" id="upgradeBtn">
+                        ⭐ 升级专业版
+                    </button>
+                </nav>
+            </div>
+        </header>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            
+            <!-- 市场温度计 -->
+            <section class="card market-thermometer" id="marketThermometer">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="title-icon">🌡️</span>
+                        市场温度计
+                    </h2>
+                    <button onclick="refreshMarket()" class="btn-icon" id="refreshBtn" title="刷新市场数据">
+                        🔄
+                    </button>
+                </div>
+                
+                <div class="thermometer-body" id="thermometerBody">
+                    <!-- 加载中状态 -->
+                    <div class="loading-state" id="marketLoading">
+                        <div class="spinner"></div>
+                        <p>正在分析市场环境...</p>
+                    </div>
+                    
+                    <!-- 温度显示（初始隐藏） -->
+                    <div class="temp-display hidden" id="tempDisplay">
+                        <div class="temp-icon-large" id="marketIcon">🟡</div>
+                        <div class="temp-info">
+                            <span class="temp-label" id="marketLabel">震荡市</span>
+                            <span class="temp-score" id="marketScore">65分</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 温度条 -->
+                    <div class="temp-bar-container hidden" id="tempBarContainer">
+                        <div class="temp-bar-track">
+                            <div class="temp-bar-fill" id="tempBar" style="width: 65%"></div>
+                            <div class="temp-bar-indicator" id="tempIndicator" style="left: 65%"></div>
+                        </div>
+                        <div class="temp-labels-row">
+                            <span class="temp-label-item weak">弱势</span>
+                            <span class="temp-label-item neutral">震荡</span>
+                            <span class="temp-label-item strong">强势</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 市场指标概览 -->
+                    <div class="market-metrics hidden" id="marketMetrics">
+                        <div class="metrics-grid">
+                            <div class="metric-item">
+                                <span class="metric-label">上证指数</span>
+                                <span class="metric-value" id="shIndex">--</span>
+                            </div>
+                            <div class="metric-item">
+                                <span class="metric-label">深证成指</span>
+                                <span class="metric-value" id="szIndex">--</span>
+                            </div>
+                            <div class="metric-item">
+                                <span class="metric-label">创业板指</span>
+                                <span class="metric-value" id="cybIndex">--</span>
+                            </div>
+                            <div class="metric-item">
+                                <span class="metric-label">涨跌比</span>
+                                <span class="metric-value" id="advanceDecline">--</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <p class="disclaimer-text">基于历史数据客观计算，不构成投资建议</p>
+                </div>
+            </section>
+
+            <!-- 股票查询区域 -->
+            <section class="card stock-query">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="title-icon">🔍</span>
+                        技术指标查询
+                    </h2>
+                </div>
+                
+                <div class="query-form">
+                    <div class="input-group">
+                        <input 
+                            type="text" 
+                            id="stockCodeInput" 
+                            placeholder="输入6位股票代码（如600519）"
+                            maxlength="6"
+                            pattern="[0-9]*"
+                            inputmode="numeric"
+                            autocomplete="off"
+                        >
+                        <button onclick="queryStock()" class="btn-primary" id="queryBtn">
+                            查询指标
+                        </button>
+                    </div>
+                    <div class="quick-actions-row">
+                        <button onclick="generateReport()" class="btn-secondary btn-small">
+                            📋 查看报告
+                        </button>
+                        <button onclick="clearResult()" class="btn-ghost btn-small">
+                            清空
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 查询结果区域 -->
+                <div id="queryResult" class="result-area hidden">
+                    <!-- 结果将通过JS动态填充 -->
+                </div>
+                
+                <!-- 空状态提示 -->
+                <div class="empty-state" id="emptyState">
+                    <div class="empty-icon">💡</div>
+                    <p>输入股票代码开始查询</p>
+                    <p class="empty-hint">支持沪深两市A股，提供17+技术指标分析</p>
+                </div>
+                
+                <!-- 默认推荐股票 -->
+                <div class="recommended-stocks" id="recommendedStocks">
+                    <h3 class="recommended-title">📋 参考股票</h3>
+                    <div class="recommended-grid" id="recommendedGrid">
+                        <!-- 动态填充 -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- 快速功能入口 -->
+            <section class="quick-actions">
+                <h2 class="section-title">⚡ 快速功能</h2>
+                <div class="action-grid">
+                    <a href="/portfolio" class="action-card">
+                        <div class="action-icon">⭐</div>
+                        <h3 class="action-title">我的自选</h3>
+                        <p class="action-desc" id="portfolioCount">管理你的自选股票列表</p>
+                    </a>
+                    <div class="action-card" onclick="showIndicatorList()">
+                        <div class="action-icon">📈</div>
+                        <h3 class="action-title">指标说明</h3>
+                        <p class="action-desc">查看17+技术指标的详细介绍</p>
+                    </div>
+                    <div class="action-card pro-card" onclick="showUpgradeInfo()">
+                        <div class="action-icon">👑</div>
+                        <h3 class="action-title">专业版</h3>
+                        <p class="action-desc">解锁全部高级功能</p>
+                        <span class="pro-tag">¥15</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 最近查询历史 -->
+            <section class="recent-queries card hidden" id="recentQueries">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="title-icon">🕐</span>
+                        最近查询
+                    </h2>
+                    <button onclick="clearRecentQueries()" class="btn-text btn-small">清除</button>
+                </div>
+                <div class="recent-list" id="recentList">
+                    <!-- 动态填充 -->
+                </div>
+            </section>
+        </main>
+
+        <!-- 底部导航栏 (移动端) -->
+        <nav class="bottom-nav">
+            <a href="/" class="bottom-nav-item active">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-label">首页</span>
+            </a>
+            <a href="/portfolio" class="bottom-nav-item">
+                <span class="nav-icon">⭐</span>
+                <span class="nav-label">自选</span>
+            </a>
+            <a href="#" class="bottom-nav-item" onclick="showUpgradeInfo()">
+                <span class="nav-icon">👑</span>
+                <span class="nav-label">升级</span>
+            </a>
+            <a href="#" class="bottom-nav-item" onclick="showSettings()">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-label">设置</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- 免责声明 -->
+    <footer class="app-footer">
+        <div class="disclaimer-box">
+            <strong>⚠️ 重要声明</strong>
+            <p>本应用仅提供技术指标的客观数值计算与状态描述。</p>
+            <p>所有输出均为纯技术数据呈现，<strong>不构成任何投资建议、操作指引或收益承诺</strong>。</p>
+            <p>投资有风险，入市需谨慎。用户需自主做出投资决策。</p>
+        </div>
+        <p class="copyright">© 2026 股票分析工具 v2.0 | 合规运营</p>
+        <p class="contact-info">
+            <a href="mailto:nimeipo@126.com">联系开发者</a> · 
+            <span>版本 2.0.0</span>
+        </p>
+    </footer>
+</div>
+
+<!-- 升级弹窗 -->
+<div class="modal-overlay hidden" id="upgradeModal">
+    <div class="modal-content upgrade-modal">
+        <div class="modal-header">
+            <h3>👑 升级专业版</h3>
+            <button onclick="closeModal('upgradeModal')" class="modal-close">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="upgrade-price">
+                <span class="price-symbol">¥</span>
+                <span class="price-amount">15</span>
+                <span class="price-period">一次性购买</span>
+            </div>
+            <ul class="upgrade-features">
+                <li>✅ 全部17+技术指标</li>
+                <li>✅ 参数自定义调节</li>
+                <li>✅ AI动态阈值自适应</li>
+                <li>✅ 无限自选股 + 分组</li>
+                <li>✅ 综合分析报告生成</li>
+                <li>✅ 历史回测功能</li>
+                <li>✅ 数据导出(Excel/PDF)</li>
+                <li>✅ 完全无广告</li>
+                <li>✅ 深色模式</li>
+            </ul>
+            <div class="upgrade-note">
+                💰 相比竞品订阅制年省¥200+
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button onclick="closeModal('upgradeModal')" class="btn-secondary btn-block">稍后再说</button>
+            <button onclick="purchasePro()" class="btn-primary btn-block">立即升级</button>
+        </div>
+    </div>
+</div>
+
+<!-- 指标说明弹窗 -->
+<div class="modal-overlay hidden" id="indicatorModal">
+    <div class="modal-content indicator-modal">
+        <div class="modal-header">
+            <h3>📊 技术指标说明</h3>
+            <button onclick="closeModal('indicatorModal')" class="modal-close">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="indicator-category">
+                <h4>趋势类指标 (5个)</h4>
+                <ul>
+                    <li><strong>MA</strong> - 移动平均线，判断趋势方向</li>
+                    <li><strong>EMA</strong> - 指数移动平均线，更灵敏</li>
+                    <li><strong>BOLL</strong> - 布林带，识别价格波动区间</li>
+                    <li><strong>DMI</strong> - 趋向指标，衡量趋势强度</li>
+                    <li><strong>SAR</strong> - 抛物线指标，止损止盈参考</li>
+                </ul>
+            </div>
+            <div class="indicator-category">
+                <h4>摆动类指标 (5个)</h4>
+                <ul>
+                    <li><strong>RSI</strong> - 相对强弱指标，衡量多空力量对比</li>
+                    <li><strong>KDJ</strong> - 随机指标，短线交易信号</li>
+                    <li><strong>WR</strong> - 威廉指标，衡量当前价格相对位置</li>
+                    <li><strong>CCI</strong> - 顺势指标，异常波动检测</li>
+                    <li><strong>BIAS</strong> - 乖离率，偏离均线程度</li>
+                </ul>
+            </div>
+            <div class="indicator-category">
+                <h4>成交量类指标 (5个)</h4>
+                <ul>
+                    <li><strong>VOL</strong> - 成交量分析</li>
+                    <li><strong>OBV</strong> - 能能量潮，量价关系</li>
+                    <li><strong>VR</strong> - 成交量比率，活跃度</li>
+                    <li><strong>量比</strong> - 当日/近5日均量比</li>
+                    <li><strong>MAVOL</strong> - 成交量均线</li>
+                </ul>
+            </div>
+            <div class="indicator-category">
+                <h4>价格形态类 (2个)</h4>
+                <ul>
+                    <li><strong>ATR</strong> - 平均真实波幅，波动性测量</li>
+                    <li><strong>TR</strong> - 真实波幅</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/static/js/app_v2.js"></script>
+</body>
+</html>

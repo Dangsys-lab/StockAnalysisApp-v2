@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>综合分析报告 - 股票分析工具 v2.0</title>
+    <link rel="stylesheet" href="/static/css/main_v2.css">
+    <style>
+        .report-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .report-header {
+            text-align: center;
+            padding: 24px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, #4a90d9 100%);
+            border-radius: var(--radius-lg);
+            color: white;
+            margin-bottom: 24px;
+        }
+        
+        .report-header h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+        
+        .report-header .stock-info {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+        
+        .report-header .price-info {
+            margin-top: 12px;
+            font-size: 16px;
+        }
+        
+        .report-header .price {
+            font-size: 28px;
+            font-weight: 700;
+        }
+        
+        .report-header .change {
+            margin-left: 8px;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+        
+        .change.up {
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+        }
+        
+        .change.down {
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+        }
+        
+        .score-section {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        
+        .score-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            font-weight: 700;
+        }
+        
+        .score-circle.high {
+            background: linear-gradient(135deg, #4CAF50 0%, #8BC34A 100%);
+            color: white;
+        }
+        
+        .score-circle.medium {
+            background: linear-gradient(135deg, #FF9800 0%, #FFC107 100%);
+            color: white;
+        }
+        
+        .score-circle.low {
+            background: linear-gradient(135deg, #F44336 0%, #E91E63 100%);
+            color: white;
+        }
+        
+        .score-number {
+            font-size: 36px;
+        }
+        
+        .score-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .market-env {
+            display: inline-block;
+            padding: 6px 16px;
+            background: var(--bg-input);
+            border-radius: 20px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        
+        .section {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .signal-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .signal-item {
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        
+        .signal-item:last-child {
+            border-bottom: none;
+        }
+        
+        .signal-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+        
+        .signal-icon.bullish {
+            background: #E8F5E9;
+            color: #4CAF50;
+        }
+        
+        .signal-icon.bearish {
+            background: #FFEBEE;
+            color: #F44336;
+        }
+        
+        .signal-content {
+            flex: 1;
+        }
+        
+        .signal-indicator {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+        
+        .signal-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        
+        .conclusion-box {
+            background: linear-gradient(135deg, var(--bg-input) 0%, var(--bg-card) 100%);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            line-height: 1.8;
+            font-size: 15px;
+        }
+        
+        .disclaimer-box {
+            background: #FFF3E0;
+            border: 1px solid #FFB74D;
+            border-radius: var(--radius-md);
+            padding: 16px;
+            margin-top: 24px;
+        }
+        
+        .disclaimer-box strong {
+            color: #E65100;
+        }
+        
+        .loading-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        
+        .loading-state .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid var(--border-light);
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .error-state {
+            text-align: center;
+            padding: 40px 20px;
+        }
+        
+        .error-state .error-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        
+        .pro-required {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        
+        .pro-required .lock-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        
+        .pro-required h2 {
+            font-size: 20px;
+            margin-bottom: 12px;
+        }
+        
+        .pro-required p {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+        
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: var(--bg-input);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            text-decoration: none;
+            margin-bottom: 20px;
+        }
+        
+        .back-btn:hover {
+            background: var(--border-light);
+        }
+    </style>
+</head>
+<body>
+<div class="app-wrapper">
+    <div class="app-container">
+        <header class="app-header">
+            <div class="header-content">
+                <a href="/" class="back-link">← 返回</a>
+                <h1 class="page-title">📋 综合分析报告</h1>
+            </div>
+        </header>
+
+        <main class="main-content report-container" id="reportContent">
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <p>正在生成分析报告...</p>
+            </div>
+        </main>
+
+        <nav class="bottom-nav">
+            <a href="/" class="bottom-nav-item">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-label">首页</span>
+            </a>
+            <a href="/portfolio" class="bottom-nav-item">
+                <span class="nav-icon">⭐</span>
+                <span class="nav-label">自选</span>
+            </a>
+            <a href="#" class="bottom-nav-item active">
+                <span class="nav-icon">📋</span>
+                <span class="nav-label">报告</span>
+            </a>
+            <a href="#" class="bottom-nav-item" onclick="showUpgradeInfo()">
+                <span class="nav-icon">👑</span>
+                <span class="nav-label">升级</span>
+            </a>
+        </nav>
+    </div>
+
+    <footer class="app-footer">
+        <p class="copyright">© 2026 股票分析工具 v2.0 | 合规运营</p>
+    </footer>
+</div>
+
+<script src="/static/js/app_v2.js"></script>
+<script>
+(function() {
+    'use strict';
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const stockCode = urlParams.get('code');
+    
+    if (!stockCode) {
+        showError('缺少股票代码参数');
+        return;
+    }
+    
+    // 检查是否是专业版用户（暂时允许所有用户测试）
+    const isProUser = checkProUser();
+    console.log('专业版用户:', isProUser);
+    
+    // 加载报告（暂时允许所有用户）
+    loadReport(stockCode);
+    
+    function checkProUser() {
+        try {
+            return localStorage.getItem('pro_user') === 'true';
+        } catch (e) {
+            return false;
+        }
+    }
+    
+    function loadReport(code) {
+        fetch(`/api/stock/${code}/report`)
+            .then(response => response.json())
+            .then(result => {
+                if (result.success && result.data) {
+                    renderReport(result.data);
+                } else {
+                    showError(result.error || '报告生成失败');
+                }
+            })
+            .catch(error => {
+                console.error('加载报告失败:', error);
+                showError('网络错误，请稍后重试');
+            });
+    }
+    
+    function renderReport(data) {
+        const container = document.getElementById('reportContent');
+        
+        const scoreClass = data.score >= 70 ? 'high' : (data.score >= 40 ? 'medium' : 'low');
+        const scoreLabel = data.score >= 70 ? '偏强' : (data.score >= 40 ? '均衡' : '偏弱');
+        
+        const changeClass = data.change >= 0 ? 'up' : 'down';
+        const changePrefix = data.change >= 0 ? '+' : '';
+        
+        // 处理信号
+        const signals = data.signals || {};
+        const bullishSignals = signals.bullish || [];
+        const bearishSignals = signals.bearish || [];
+        
+        let signalsHtml = '';
+        
+        if (bullishSignals.length > 0) {
+            signalsHtml += bullishSignals.map(s => `
+                <li class="signal-item">
+                    <div class="signal-icon bullish">↑</div>
+                    <div class="signal-content">
+                        <div class="signal-indicator">${s.indicator || '指标'}</div>
+                        <div class="signal-desc">${s.description || ''}</div>
+                    </div>
+                </li>
+            `).join('');
+        }
+        
+        if (bearishSignals.length > 0) {
+            signalsHtml += bearishSignals.map(s => `
+                <li class="signal-item">
+                    <div class="signal-icon bearish">↓</div>
+                    <div class="signal-content">
+                        <div class="signal-indicator">${s.indicator || '指标'}</div>
+                        <div class="signal-desc">${s.description || ''}</div>
+                    </div>
+                </li>
+            `).join('');
+        }
+        
+        container.innerHTML = `
+            <a href="/?code=${data.code || stockCode}" class="back-btn">← 返回查询</a>
+            
+            <div class="report-header">
+                <h1>综合分析报告</h1>
+                <div class="stock-info">${data.stock_name || data.code || stockCode} (${data.code || stockCode})</div>
+                ${data.price ? `
+                    <div class="price-info">
+                        <span class="price">¥${data.price.toFixed(2)}</span>
+                        <span class="change ${changeClass}">${changePrefix}${(data.change || 0).toFixed(2)}%</span>
+                    </div>
+                ` : ''}
+            </div>
+            
+            <div class="score-section">
+                <div class="score-circle ${scoreClass}">
+                    <span class="score-number">${data.score || '--'}</span>
+                    <span class="score-label">${scoreLabel}</span>
+                </div>
+                <div class="market-env">市场环境: ${data.market_env || '震荡格局'}</div>
+            </div>
+            
+            ${signalsHtml ? `
+                <div class="section">
+                    <h3 class="section-title">📊 技术信号</h3>
+                    <ul class="signal-list">${signalsHtml}</ul>
+                </div>
+            ` : ''}
+            
+            <div class="section">
+                <h3 class="section-title">📝 综合结论</h3>
+                <div class="conclusion-box">
+                    ${data.conclusion || '暂无结论'}
+                </div>
+            </div>
+            
+            <div class="disclaimer-box">
+                <strong>⚠️ 重要声明</strong>
+                <p>本报告基于技术指标的客观数值计算生成，所有内容仅供参考。</p>
+                <p><strong>不构成任何投资建议或操作指引。</strong></p>
+                <p>投资有风险，入市需谨慎。</p>
+            </div>
+        `;
+    }
+    
+    function showError(message) {
+        const container = document.getElementById('reportContent');
+        container.innerHTML = `
+            <div class="error-state">
+                <div class="error-icon">❌</div>
+                <h2>报告生成失败</h2>
+                <p>${message}</p>
+                <a href="/" class="btn-primary" style="display:inline-block;margin-top:16px;">返回首页</a>
+            </div>
+        `;
+    }
+    
+    function showProRequired() {
+        const container = document.getElementById('reportContent');
+        container.innerHTML = `
+            <div class="pro-required">
+                <div class="lock-icon">🔒</div>
+                <h2>专业版功能</h2>
+                <p>综合分析报告为专业版专属功能</p>
+                <p style="font-size:14px;color:var(--text-secondary);">升级专业版解锁完整技术分析能力</p>
+                <button onclick="purchasePro()" class="btn-primary" style="margin-top:20px;">
+                    👑 升级专业版 ¥15
+                </button>
+            </div>
+        `;
+    }
+    
+    window.purchasePro = function() {
+        showToast('正在跳转至App Store购买页面...', 'info');
+        setTimeout(() => {
+            alert('在真实App中，这里会调用Apple IAP进行购买。\n\n价格: ¥15.00\n购买后解锁全部高级功能！');
+        }, 500);
+    };
+    
+    window.showUpgradeInfo = function() {
+        showToast('请升级到专业版以使用此功能', 'warning');
+    };
+})();
+</script>
+</body>
+</html>

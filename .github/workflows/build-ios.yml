@@ -1,0 +1,237 @@
+name: Build iOS App
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Select Xcode 16.4
+      run: sudo xcode-select -s /Applications/Xcode_16.4.app
+
+    - name: Install iOS Simulator Runtime
+      run: |
+        if ! xcrun simctl list runtimes | grep -q "iOS"; then
+          echo "No iOS runtime found, downloading..."
+          xcodebuild -downloadPlatform iOS
+        fi
+        xcrun simctl list runtimes | grep iOS || true
+
+    - name: Create Simulator
+      run: |
+        RUNTIME=$(xcrun simctl list runtimes | grep "iOS" | head -1 | sed 's/.*- \(com\.apple\.CoreSimulator\.SimRuntime\.[^ ]*\).*/\1/')
+        if [ -z "$RUNTIME" ]; then
+          echo "No iOS runtime available, skipping simulator creation"
+          exit 0
+        fi
+        echo "Using runtime: $RUNTIME"
+        DEVICETYPE=$(xcrun simctl list devicetypes | grep "iPhone 16" | head -1 | sed 's/.*- \(com\.apple\.CoreSimulator\.SimDeviceType\.[^ ]*\).*/\1/')
+        if [ -z "$DEVICETYPE" ]; then
+          echo "iPhone 16 device type not found, listing available..."
+          xcrun simctl list devicetypes | grep iPhone | head -5
+          DEVICETYPE=$(xcrun simctl list devicetypes | grep "iPhone" | head -1 | sed 's/.*- \(com\.apple\.CoreSimulator\.SimDeviceType\.[^ ]*\).*/\1/')
+        fi
+        echo "Using device type: $DEVICETYPE"
+        xcrun simctl create "iPhone 16" "$DEVICETYPE" "$RUNTIME" || true
+        xcrun simctl list devices available | grep iPhone
+
+    - name: Install XcodeGen
+      run: brew install xcodegen
+
+    - name: Generate Xcode Project
+      working-directory: ios
+      run: xcodegen generate
+
+    - name: Build for Simulator
+      working-directory: ios
+      run: |
+        DESTINATION='generic/platform=iOS Simulator'
+        if xcrun simctl list devices available | grep -q "iPhone 16"; then
+          DESTINATION='platform=iOS Simulator,name=iPhone 16'
+        fi
+        echo "Building with destination: $DESTINATION"
+        xcodebuild \
+          -project StockAnalysisApp.xcodeproj \
+          -scheme StockAnalysisApp \
+          -sdk iphonesimulator \
+          -destination "$DESTINATION" \
+          -configuration Debug \
+          -derivedDataPath ./DerivedData \
+          build \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO
+
+    - name: Take Screenshots
+      run: |
+        SIMULATOR_ID=$(xcrun simctl list devices available | grep "iPhone 16 Pro Max" | head -1 | grep -o -E '[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}')
+
+        if [ -z "$SIMULATOR_ID" ]; then
+          echo "⚠️ iPhone 16 Pro Max not found, trying iPhone 16 Plus..."
+          SIMULATOR_ID=$(xcrun simctl list devices available | grep "iPhone 16 Plus" | head -1 | grep -o -E '[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}')
+        fi
+
+        if [ -z "$SIMULATOR_ID" ]; then
+          echo "⚠️ iPhone 16 Plus not found, trying iPhone 16..."
+          SIMULATOR_ID=$(xcrun simctl list devices available | grep "iPhone 16" | grep -v "Pro" | grep -v "Plus" | head -1 | grep -o -E '[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}')
+        fi
+
+        if [ -z "$SIMULATOR_ID" ]; then
+          echo "❌ No suitable iPhone simulator found"
+          xcrun simctl list devices available | grep iPhone
+          exit 1
+        fi
+
+        echo "📱 Using simulator: $SIMULATOR_ID"
+
+        xcrun simctl boot "$SIMULATOR_ID" 2>/dev/null || true
+        sleep 15
+
+        APP_PATH=$(find ios/DerivedData -name "StockAnalysisApp.app" -path "*/Debug-iphonesimulator/*" | head -1)
+
+        if [ -z "$APP_PATH" ]; then
+          echo "❌ App not found in DerivedData"
+          find ios/DerivedData -name "*.app" 2>/dev/null || true
+          exit 1
+        fi
+
+        echo "📦 App path: $APP_PATH"
+
+        xcrun simctl install "$SIMULATOR_ID" "$APP_PATH"
+
+        mkdir -p ./screenshots
+
+        xcrun simctl launch "$SIMULATOR_ID" com.dangsys.stockanalyzer
+        sleep 8
+        xcrun simctl io "$SIMULATOR_ID" screenshot ./screenshots/01_home.png
+        echo "📸 Screenshot: Home tab"
+
+        xcrun simctl terminate "$SIMULATOR_ID" com.dangsys.stockanalyzer 2>/dev/null || true
+        sleep 2
+        xcrun simctl launch "$SIMULATOR_ID" com.dangsys.stockanalyzer --tab-market
+        sleep 5
+        xcrun simctl io "$SIMULATOR_ID" screenshot ./screenshots/02_market.png
+        echo "📸 Screenshot: Market tab"
+
+        xcrun simctl terminate "$SIMULATOR_ID" com.dangsys.stockanalyzer 2>/dev/null || true
+        sleep 2
+        xcrun simctl launch "$SIMULATOR_ID" com.dangsys.stockanalyzer --tab-portfolio
+        sleep 5
+        xcrun simctl io "$SIMULATOR_ID" screenshot ./screenshots/03_portfolio.png
+        echo "📸 Screenshot: Portfolio tab"
+
+        xcrun simctl terminate "$SIMULATOR_ID" com.dangsys.stockanalyzer 2>/dev/null || true
+        sleep 2
+        xcrun simctl launch "$SIMULATOR_ID" com.dangsys.stockanalyzer --tab-settings
+        sleep 5
+        xcrun simctl io "$SIMULATOR_ID" screenshot ./screenshots/04_settings.png
+        echo "📸 Screenshot: Settings tab"
+
+        xcrun simctl shutdown "$SIMULATOR_ID" 2>/dev/null || true
+
+        echo "✅ Screenshots saved to ./screenshots/"
+        ls -la ./screenshots/
+
+    - name: Upload Screenshots
+      uses: actions/upload-artifact@v4
+      with:
+        name: App-Screenshots
+        path: screenshots/*.png
+        retention-days: 30
+
+    - name: Import Certificate
+      env:
+        P12_BASE64: ${{ secrets.P12_BASE64 }}
+        P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+      run: |
+        mkdir -p ~/certs
+        echo "$P12_BASE64" | base64 -d > ~/certs/cert.p12
+        security create-keychain -p actions ~/certs/keychain.db
+        security import ~/certs/cert.p12 -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k ~/certs/keychain.db
+        security list-keychains -s ~/certs/keychain.db
+        security set-key-partition-list -S apple-tool:,apple: -k actions ~/certs/keychain.db
+
+    - name: Install Provisioning Profile
+      env:
+        PROVISION_BASE64: ${{ secrets.PROVISION_BASE64 }}
+      run: |
+        mkdir -p ~/profiles
+        echo "$PROVISION_BASE64" | base64 -d > ~/profiles/profile.mobileprovision
+        mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+        UUID=$(security cms -D -i ~/profiles/profile.mobileprovision 2>/dev/null | plutil -extract UUID raw -)
+        echo "Profile UUID: $UUID"
+        cp ~/profiles/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
+
+    - name: Archive for Distribution
+      working-directory: ios
+      run: |
+        xcodebuild \
+          -project StockAnalysisApp.xcodeproj \
+          -scheme StockAnalysisApp \
+          -sdk iphoneos \
+          -configuration Release \
+          -archivePath build/StockAnalysisApp.xcarchive \
+          CODE_SIGN_IDENTITY="Apple Distribution" \
+          CODE_SIGNING_REQUIRED=YES \
+          CODE_SIGNING_ALLOWED=YES \
+          CODE_SIGN_STYLE=Manual \
+          DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} \
+          PROVISIONING_PROFILE_SPECIFIER="StockAnalyzer_Dist" \
+          -allowProvisioningUpdates \
+          archive
+
+    - name: Export IPA
+      working-directory: ios
+      run: |
+        xcodebuild \
+          -exportArchive \
+          -archivePath build/StockAnalysisApp.xcarchive \
+          -exportOptionsPlist StockAnalysisApp/ExportOptions.plist \
+          -exportPath build/ipa \
+          -allowProvisioningUpdates
+
+    - name: Upload IPA to App Store Connect
+      if: success()
+      env:
+        API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+        ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+      run: |
+        mkdir -p ~/.appstoreconnect/private_keys
+        echo "$API_KEY_BASE64" | base64 -d > ~/.appstoreconnect/private_keys/AuthKey_$API_KEY_ID.p8
+        chmod 600 ~/.appstoreconnect/private_keys/AuthKey_$API_KEY_ID.p8
+
+        IPA_PATH=$(find ios/build/ipa -name "*.ipa" | head -1)
+        if [ -z "$IPA_PATH" ]; then
+          echo "❌ No IPA file found!"
+          exit 1
+        fi
+        echo "📦 Uploading: $IPA_PATH"
+        ls -la "$IPA_PATH"
+
+        xcrun altool --upload-app \
+          --type ios \
+          --file "$IPA_PATH" \
+          --apiKey "$API_KEY_ID" \
+          --apiIssuer "$ISSUER_ID"
+
+        echo "✅ Upload complete!"
+
+    - name: Upload IPA
+      uses: actions/upload-artifact@v4
+      with:
+        name: StockAnalysisApp.ipa
+        path: ios/build/ipa/*.ipa
+        retention-days: 30
+
+    - name: Cleanup
+      if: always()
+      run: |
+        security delete-keychain ~/certs/keychain.db 2>/dev/null || true
+        rm -rf ~/certs ~/profiles

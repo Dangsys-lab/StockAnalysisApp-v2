@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>游僧手记 - 荡世游僧</title>
+    <style>
+        @page { size: A4; margin: 2cm; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "SimSun", "STSong", "Noto Serif CJK SC", serif;
+            font-size: 14px;
+            line-height: 1.9;
+            color: #222;
+            background: #fff;
+            padding: 40px 60px;
+        }
+        h1.title {
+            text-align: center;
+            font-size: 26px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            letter-spacing: 3px;
+        }
+        .subtitle {
+            text-align: center;
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 50px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #c0392b;
+        }
+        h2 {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 36px;
+            margin-bottom: 14px;
+            padding-left: 12px;
+            border-left: 4px solid #c0392b;
+            color: #333;
+        }
+        p { text-indent: 2em; margin-bottom: 10px; text-align: justify; }
+        p.no-indent { text-indent: 0; }
+        blockquote {
+            margin: 16px 24px; padding: 12px 18px;
+            background: #fef9f0;
+            border-left: 3px solid #e67e22;
+            font-style: italic; color: #555;
+        }
+        .highlight { color: #c0392b; font-weight: bold; }
+        .sign-off { text-align: right; margin-top: 48px; font-style: italic; color: #666; }
+        .divider { text-align: center; margin: 30px 0; color: #ccc; letter-spacing: 8px; font-size: 12px; }
+        .footer-note {
+            margin-top: 30px; padding: 14px 18px;
+            background: #f5f5f5; border-radius: 6px;
+            font-size: 11px; color: #999;
+        }
+        .figure {
+            text-align: center; margin: 22px 0;
+        }
+        .figure img {
+            max-width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .figure figcaption {
+            margin-top: 8px;
+            font-size: 11px;
+            color: #888;
+            font-style: italic;
+        }
+        ol { margin-left: 2em; margin-bottom: 10px; }
+        li { margin-bottom: 4px; }
+    </style>
+</head>
+<body>
+
+<h1 class="title">📜 游僧手记</h1>
+<p style="text-align:center; font-size:18px; margin-bottom:6px;">让 AI 自行修禅一宿，竟成 IPA</p>
+<div class="subtitle">作者：荡世游僧 · 掘金首发 · 2026年4月13日</div>
+
+<h2>一、缘起</h2>
+
+<p>贫僧法号<span class="highlight">荡世游僧</span>，修行多年，见过不少法器，然今日所见，仍觉有趣。</p>
+
+<p>世人皆言 iOS 开发需 Mac，无 Mac 则寸步难行。贫僧不信。取 XcodeGen 一尊，配 GitHub Actions 之 macOS runner，欲行无 Mac 编译之术。此法非贫僧首创，然真正走通者寥寥——盖因编译之途，坑多路险，证书签名之玄学，足以令常人望而却步。</p>
+
+<figure class="figure">
+    <img src="images/githubcg.png" alt="GitHub Actions 运行记录">
+    <figcaption>图一：GitHub Actions 运行记录 — 十三轮试炼，十二败一胜</figcaption>
+</figure>
+
+<h2>二、试炼</h2>
+
+<p>取 <span class="highlight">GLM-5.1</span> 一尊，令其自主运转。此器不看经文，不问方向，自行读日志、断根因、改代码、推远端、候编译，循环往复，一个半时辰不曾停歇。</p>
+
+<figure class="figure">
+    <img src="images/xcode.png" alt="SOLO Coder 自主调试对话">
+    <figcaption>图二：GLM-5.1 在 SOLO Coder 中自主调试 — "非也，乃 decodeGB18030 参数类型之误"</figcaption>
+</figure>
+
+<blockquote>
+<p class="no-indent" style="text-indent:0;">期间贫僧曾问："可是 Xcode 版本之故？苹果新规需 Xcode 26 方可？"</p>
+<p class="no-indent" style="text-indent:0;">此器答曰："非也，乃 decodeGB18030 参数类型之误。"</p>
+</blockquote>
+
+<p><span class="highlight">——不被旁人带偏，自行判断因果，此为定力。</span></p>
+
+<p>贫僧遂不再过问，任其自行修行。它便继续：读报错、定位代码、修改类型、推送提交、等待编译、再读报错……如此往复，直至编译通过，签名无误，IPA 成型。</p>
+
+<p>全程未动一指，如观弟子自行悟道，甚慰。</p>
+
+<figure class="figure">
+    <img src="images/githubshib.png" alt="#9 编译成功详情">
+    <figcaption>图三：#9 编译成功详情 — 八步通关，一步不落</figcaption>
+</figure>
+
+<figure class="figure">
+    <img src="images/ipa.png" alt="最终打包成功">
+    <figcaption>图四：最终打包成功 — 七步全绿，IPA 成型</figcaption>
+</figure>
+
+<h2>三、布阵</h2>
+
+<p>又忆此前，于本地布阵 <span class="highlight">HermesAgent</span>。此器需通阿里云 DashScope 之脉，方能运转。配置之繁琐，常人三试而弃。然贫僧静心布之，终令其完全可用——非摆设，乃真可对话、真可编码之实器。</p>
+
+<figure class="figure">
+    <img src="images/hermes-1.png" alt="Hermes Agent 启动配置">
+    <figcaption>图五：Hermes Agent 启动命令与常用子命令一览</figcaption>
+</figure>
+
+<figure class="figure">
+    <img src="images/hermes-2.png" alt="Hermes Agent 运行界面">
+    <figcaption>图六：Hermes Agent v0.8.0 运行界面 — 26 tools / 73 skills</figcaption>
+</figure>
+
+<p>世人皆言此类法器难配，贫僧以为，<span class="highlight">非器难配，乃心静耳。</span></p>
+
+<h2>四、论器</h2>
+
+<p>世人追逐 GPT、Claude，贫僧不置可否。然今日亲历，有三点可记：</p>
+
+<ol>
+    <li><p class="no-indent"><span class="highlight">GLM-5.1 确有自主修行之能。</span>SWE-Bench Pro 58.4 分，全球第一，非虚名也。其长程自主工作之能——连续八小时不跑偏、不被带偏、自行纠错——此为真功夫。</p></li>
+    <li><p class="no-indent"><span class="highlight">Trae IDE 将 GLM-5.1 内置免费供用，亦算功德一件。</span>若自费调用，一个半时辰之自主调试，少说亦需十数元。免费供之，实乃开发者之福。</p></li>
+    <li><p class="no-indent"><span class="highlight">无 Mac 编译 iOS，非不可为，乃不愿为也。</span>XcodeGen + GitHub Actions + Transporter 上传，全程无需 Mac。此路虽险，然有 AI 辅之，亦可通。</p></li>
+</ol>
+
+<h2>五、结语</h2>
+
+<p>记此二事，非为炫耀，实为后来者留一参考：</p>
+
+<p><span class="highlight">AI 可用，且可大用。关键不在器之强弱，在用器之人是否知其法。</span></p>
+
+<p>器再强，不知其法，不过摆设。法再妙，无器可执，亦是空谈。</p>
+
+<p class="highlight" style="font-size:16px; text-align:center; margin-top:20px; text-indent:0;">法器相合，方得自在。</p>
+
+<div class="divider">✦ ✦ ✦</div>
+
+<p style="text-align:center; text-indent:0; font-size:15px;">
+    <span class="highlight">@智谱GLM @TraeIDE 此二器，可堪一用。</span>
+</p>
+
+<p class="sign-off">——荡世游僧 记于丙午年三月</p>
+
+<div class="footer-note">
+    <strong>原文链接：</strong>https://juejin.cn/post/7627448009643491347<br>
+    <strong>转载请注明出处及原作者「荡世游僧」。</strong>
+</div>
+
+</body>
+</html>

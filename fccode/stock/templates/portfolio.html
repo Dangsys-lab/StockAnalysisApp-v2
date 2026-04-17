@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>我的自选 - 股票分析工具 v2.0</title>
+    <link rel="stylesheet" href="/static/css/main_v2.css">
+    <style>
+        .stock-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .stock-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            border: 1px solid var(--border-light);
+        }
+        
+        .card-header-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .stock-code {
+            font-weight: 600;
+            color: var(--primary-color);
+            font-size: 16px;
+        }
+        
+        .stock-name {
+            font-size: 15px;
+            color: var(--text-primary);
+            flex: 1;
+        }
+        
+        .group-tag {
+            font-size: 12px;
+            padding: 2px 8px;
+            background: var(--bg-input);
+            border-radius: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .card-info {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+        
+        .current-price {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .text-success {
+            color: #4CAF50;
+        }
+        
+        .text-danger {
+            color: #F44336;
+        }
+        
+        .card-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+        
+        .action-link {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .btn-danger-sm {
+            background: transparent;
+            color: #F44336;
+            border: 1px solid #F44336;
+            padding: 4px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            cursor: pointer;
+        }
+        
+        .btn-danger-sm:hover {
+            background: #FFEBEE;
+        }
+        
+        .list-summary {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+        
+        .note-text {
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+<div class="app-wrapper">
+    <div class="app-container">
+        <header class="app-header">
+            <div class="header-content">
+                <a href="/" class="back-link">← 返回</a>
+                <h1 class="page-title">⭐ 我的自选</h1>
+                <button onclick="showAddModal()" class="btn-icon">+</button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="portfolio-stats card" id="portfolioStats">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-value" id="totalCount">0</span>
+                        <span class="stat-label">自选总数</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value text-success" id="upCount">0</span>
+                        <span class="stat-label">上涨</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value text-danger" id="downCount">0</span>
+                        <span class="stat-label">下跌</span>
+                    </div>
+                </div>
+            </div>
+
+            <section class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="title-icon">📋</span>
+                        自选列表
+                    </h2>
+                    <div class="filter-tabs">
+                        <button onclick="filterPortfolio('all')" class="filter-tab active" id="filterAll">全部</button>
+                        <button onclick="filterPortfolio('watching')" class="filter-tab" id="filterWatching">跟踪中</button>
+                        <button onclick="filterPortfolio('holding')" class="filter-tab" id="filterHolding">已持有</button>
+                    </div>
+                </div>
+
+                <div id="portfolioList" class="stock-list">
+                    <!-- 动态填充 -->
+                </div>
+
+                <div class="empty-state" id="emptyState">
+                    <div class="empty-icon">📝</div>
+                    <p>还没有自选股票</p>
+                    <p class="empty-hint">点击右上角 + 添加你关注的股票</p>
+                    <button onclick="showAddModal()" class="btn-primary btn-small mt-16">添加第一只股票</button>
+                </div>
+            </section>
+
+            <section class="tips-section card hidden" id="tipsSection">
+                <h3 class="card-title">
+                    <span class="title-icon">💡</span>
+                    使用技巧
+                </h3>
+                <ul class="tips-list">
+                    <li>点击股票卡片可快速查看技术指标</li>
+                    <li>左滑可删除，长按可编辑备注</li>
+                    <li>分组管理帮你区分跟踪和持仓</li>
+                    <li>专业版支持无限自选 + 分组导出</li>
+                </ul>
+            </section>
+        </main>
+
+        <nav class="bottom-nav">
+            <a href="/" class="bottom-nav-item">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-label">首页</span>
+            </a>
+            <a href="/portfolio" class="bottom-nav-item active">
+                <span class="nav-icon">⭐</span>
+                <span class="nav-label">自选</span>
+            </a>
+            <a href="#" class="bottom-nav-item" onclick="showUpgradeInfo()">
+                <span class="nav-icon">👑</span>
+                <span class="nav-label">升级</span>
+            </a>
+            <a href="#" class="bottom-nav-item" onclick="showSettings()">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-label">设置</span>
+            </a>
+        </nav>
+    </div>
+
+    <footer class="app-footer">
+        <div class="disclaimer-box">
+            <strong>⚠️ 重要声明</strong>
+            <p>自选股列表仅用于个人记录和快速访问。</p>
+            <p><strong>不构成任何投资建议或推荐。</strong></p>
+        </div>
+        <p class="copyright">© 2026 股票分析工具 v2.0 | 合规运营</p>
+    </footer>
+</div>
+
+<!-- 添加自选弹窗 -->
+<div class="modal-overlay hidden" id="addModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>➕ 添加自选股</h3>
+            <button onclick="closeModal('addModal')" class="modal-close">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">股票代码</label>
+                <input type="text" id="addStockCode" placeholder="输入6位代码（如600519）" 
+                       maxlength="6" pattern="[0-9]*" inputmode="numeric"
+                       autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label class="form-label">分组</label>
+                <select id="addStockGroup">
+                    <option value="watching">👀 跟踪中</option>
+                    <option value="holding">💰 已持有</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">备注（可选）</label>
+                <textarea id="addStockNote" placeholder="添加备注信息..." rows="2"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button onclick="closeModal('addModal')" class="btn-secondary btn-block">取消</button>
+            <button onclick="addToPortfolio()" class="btn-primary btn-block">添加</button>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑弹窗 -->
+<div class="modal-overlay hidden" id="editModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>✏️ 编辑自选</h3>
+            <button onclick="closeModal('editModal')" class="modal-close">×</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editStockId">
+            <div class="form-group">
+                <label class="form-label">股票</label>
+                <input type="text" id="editStockName" readonly style="background:var(--bg-input);">
+            </div>
+            <div class="form-group">
+                <label class="form-label">分组</label>
+                <select id="editStockGroup">
+                    <option value="watching">👀 跟踪中</option>
+                    <option value="holding">💰 已持有</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">备注</label>
+                <textarea id="editStockNote" placeholder="编辑备注..." rows="2"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer" style="flex-direction:row;">
+            <button onclick="deleteFromPortfolio()" class="btn-secondary" style="background:var(--danger-color);color:white;">删除</button>
+            <button onclick="saveEdit()" class="btn-primary">保存</button>
+        </div>
+    </div>
+</div>
+
+<script src="/static/js/app_v2.js"></script>
+<script>
+(function() {
+    'use strict';
+
+    let portfolio = [];
+    let currentFilter = 'all';
+    const MAX_FREE_PORTFOLIO = 5;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        loadPortfolio();
+        renderPortfolio();
+    });
+
+    function loadPortfolio() {
+        try {
+            const saved = localStorage.getItem('stock_portfolio');
+            if (saved) {
+                portfolio = JSON.parse(saved);
+            }
+        } catch (e) {}
+    }
+
+    function savePortfolio() {
+        try {
+            localStorage.setItem('stock_portfolio', JSON.stringify(portfolio));
+        } catch (e) {}
+    }
+
+    function renderPortfolio() {
+        const listContainer = document.getElementById('portfolioList');
+        const emptyState = document.getElementById('emptyState');
+        const statsEl = document.getElementById('portfolioStats');
+
+        let filtered = portfolio;
+        if (currentFilter !== 'all') {
+            filtered = portfolio.filter(item => item.group === currentFilter);
+        }
+
+        if (!listContainer) return;
+
+        if (filtered.length === 0) {
+            listContainer.classList.add('hidden');
+            if (emptyState) emptyState.classList.remove('hidden');
+            if (statsEl) statsEl.classList.add('hidden');
+        } else {
+            listContainer.classList.remove('hidden');
+            if (emptyState) emptyState.classList.add('hidden');
+            if (statsEl) statsEl.classList.remove('hidden');
+
+            updateStats();
+
+            listContainer.innerHTML = filtered.map((item, index) => {
+                const changeClass = item.change >= 0 ? 'price-up' : 'price-down';
+                const changePrefix = item.change >= 0 ? '+' : '';
+                
+                return `
+                    <div class="stock-card" onclick="quickView('${item.code}')">
+                        <div class="stock-card-main">
+                            <div class="stock-card-info">
+                                <h4>${escapeHtml(item.name || item.code)}</h4>
+                                <span class="stock-code">${item.code}</span>
+                            </div>
+                            <div class="stock-card-price">
+                                <span class="price ${changeClass}">${item.price || '--'}</span>
+                                <span class="change ${changeClass}">${changePrefix}${(item.change || 0).toFixed(2)}%</span>
+                            </div>
+                        </div>
+                        <div class="stock-card-meta">
+                            <span class="group-tag ${item.group === 'holding' ? 'tag-holding' : 'tag-watching'}">
+                                ${item.group === 'holding' ? '💰 已持有' : '👀 跟踪中'}
+                            </span>
+                            ${item.note ? `<span class="note-text">${escapeHtml(item.note)}</span>` : ''}
+                            <button onclick="event.stopPropagation(); editItem('${item.id}')" class="edit-btn">编辑</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+    }
+
+    function updateStats() {
+        const total = document.getElementById('totalCount');
+        const upCount = document.getElementById('upCount');
+        const downCount = document.getElementById('downCount');
+
+        if (total) total.textContent = portfolio.length;
+        
+        let up = 0, down = 0;
+        portfolio.forEach(item => {
+            if (item.change > 0) up++;
+            else if (item.change < 0) down++;
+        });
+
+        if (upCount) upCount.textContent = up;
+        if (downCount) downCount.textContent = down;
+    }
+
+    window.filterPortfolio = function(filter) {
+        currentFilter = filter;
+
+        document.querySelectorAll('.filter-tab').forEach(tab => tab.classList.remove('active'));
+        const activeTab = document.getElementById('filter' + filter.charAt(0).toUpperCase() + filter.slice(1));
+        if (activeTab) activeTab.classList.add('active');
+
+        renderPortfolio();
+    };
+
+    window.showAddModal = function() {
+        showModal('addModal');
+        
+        if (portfolio.length >= MAX_FREE_PORTFOLIO && !isProUser()) {
+            showToast(`免费版最多${MAX_FREE_PORTFOLIO}只，升级专业版解锁无限数量`, 'warning');
+        }
+    };
+
+    window.addToPortfolio = async function() {
+        const codeInput = document.getElementById('addStockCode');
+        const groupSelect = document.getElementById('addStockGroup');
+        const noteInput = document.getElementById('addStockNote');
+
+        const code = codeInput.value.trim();
+        const group = groupSelect.value;
+        const note = noteInput.value.trim();
+
+        if (!code || code.length !== 6) {
+            showToast('请输入有效的6位股票代码', 'warning');
+            return;
+        }
+
+        if (portfolio.find(item => item.code === code)) {
+            showToast('该股票已在自选列表中', 'warning');
+            return;
+        }
+
+        if (portfolio.length >= MAX_FREE_PORTFOLIO && !isProUser()) {
+            showUpgradeInfo();
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/stock/${code}/basic`);
+            const result = await response.json();
+
+            const newItem = {
+                id: Date.now().toString(),
+                code: code,
+                name: result.data?.name || code,
+                price: result.data?.price || '--',
+                change: result.data?.change || 0,
+                group: group,
+                note: note,
+                addedAt: new Date().toISOString()
+            };
+
+            portfolio.push(newItem);
+            savePortfolio();
+            renderPortfolio();
+            closeModal('addModal');
+
+            codeInput.value = '';
+            groupSelect.selectedIndex = 0;
+            noteInput.value = '';
+
+            showToast(`已添加 ${newItem.name}`, 'success');
+        } catch (error) {
+            console.error(error);
+            
+            const newItem = {
+                id: Date.now().toString(),
+                code: code,
+                name: code,
+                price: '--',
+                change: 0,
+                group: group,
+                note: note,
+                addedAt: new Date().toISOString()
+            };
+
+            portfolio.push(newItem);
+            savePortfolio();
+            renderPortfolio();
+            closeModal('addModal');
+            
+            showToast(`已添加 ${code}（数据将在刷新后更新）`, 'success');
+        }
+    };
+
+    window.editItem = function(id) {
+        const item = portfolio.find(i => i.id === id);
+        if (!item) return;
+
+        document.getElementById('editStockId').value = id;
+        document.getElementById('editStockName').value = `${item.name} (${item.code})`;
+        document.getElementById('editStockGroup').value = item.group;
+        document.getElementById('editStockNote').value = item.note || '';
+
+        showModal('editModal');
+    };
+
+    window.saveEdit = function() {
+        const id = document.getElementById('editStockId').value;
+        const group = document.getElementById('editStockGroup').value;
+        const note = document.getElementById('editStockNote').value;
+
+        const item = portfolio.find(i => i.id === id);
+        if (item) {
+            item.group = group;
+            item.note = note;
+            savePortfolio();
+            renderPortfolio();
+            closeModal('editModal');
+            showToast('修改已保存', 'success');
+        }
+    };
+
+    window.deleteFromPortfolio = function() {
+        const id = document.getElementById('editStockId').value;
+        
+        if (confirm('确定要删除这只自选股吗？')) {
+            portfolio = portfolio.filter(i => i.id !== id);
+            savePortfolio();
+            renderPortfolio();
+            closeModal('editModal');
+            showToast('已删除', 'info');
+        }
+    };
+
+    window.quickView = function(code) {
+        window.location.href = `/report?code=${code}`;
+    };
+
+    function isProUser() {
+        try {
+            return localStorage.getItem('pro_user') === 'true';
+        } catch (e) { return false; }
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+})();
+</script>
+
+<style>
+.back-link {
+    color: var(--primary-color);
+    font-size: var(--font-size-base);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.page-title {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    text-align: center;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.stat-value {
+    font-size: var(--font-size-xxl);
+    font-weight: 700;
+}
+
+.stat-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+}
+
+.filter-tabs {
+    display: flex;
+    gap: 8px;
+}
+
+.filter-tab {
+    padding: 6px 14px;
+    border-radius: 20px;
+    background: var(--bg-input);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    transition: all 0.2s;
+}
+
+.filter-tab.active {
+    background: var(--primary-color);
+    color: white;
+}
+
+.stock-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.stock-card {
+    background: var(--bg-input);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.stock-card:active {
+    transform: scale(0.98);
+    background: var(--border-light);
+}
+
+.stock-card-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.stock-card-info h4 {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+}
+
+.stock-card-info .stock-code {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+}
+
+.stock-card-price {
+    text-align: right;
+}
+
+.stock-card-price .price {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    display: block;
+}
+
+.stock-card-price .change {
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+}
+
+.stock-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-light);
+}
+
+.group-tag {
+    font-size: var(--font-size-xs);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 500;
+}
+
+.tag-watching {
+    background: #E3F2FD;
+    color: #1976D2;
+}
+
+.tag-holding {
+    background: #E8F5E9;
+    color: #388E3C;
+}
+
+.note-text {
+    flex: 1;
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.edit-btn {
+    font-size: var(--font-size-xs);
+    color: var(--primary-color);
+    background: none;
+    padding: 4px 8px;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-label {
+    display: block;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--bg-input);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-base);
+    color: var(--text-primary);
+    border: none;
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 60px;
+}
+
+.tips-list {
+    list-style: none;
+    padding: 0;
+}
+
+.tips-list li {
+    padding: 8px 0;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.tips-list li:last-child {
+    border-bottom: none;
+}
+</style>
+</body>
+</html>

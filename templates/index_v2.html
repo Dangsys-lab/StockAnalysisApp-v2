@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" style="default">
+    <title>股票技术分析工具 v2.0</title>
+    <meta name="description" content="专业级股票技术分析工具，17+技术指标、市场环境感知、自选股管理。所有数据为客观数值，不构成投资建议。">
+    
+    <link rel="stylesheet" href="/static/css/main_v2.css">
+    <style>
+        .trial-badge {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #333;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 8px rgba(255, 165, 0, 0.3);
+            animation: pulse 2s infinite;
+        }
+        .trial-badge .icon {
+            font-size: 16px;
+        }
+        .trial-progress-container {
+            width: 100px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .trial-progress-bar {
+            height: 100%;
+            background: #FF4500;
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+        .compliance-modal { position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999; }
+        .data-status-badge {
+            display:inline-flex;align-items:center;gap:6px;
+            padding:4px 12px;border-radius:12px;font-size:12px;font-weight:500;
+            margin-bottom:10px;
+        }
+        .status-free { background:#ffebee;color:#c62828; }
+        .status-trial { background:#fff8e1;color:#f57c00; }
+        .status-pro { background:#e8f5e9;color:#2e7d32; }
+    </style>
+</head>
+<body>
+<!-- 合规弹窗 -->
+<div id="complianceModal" class="compliance-modal" style="display:none;">
+    <div class="modal-overlay" style="width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;">
+        <div class="modal-content" style="background:white;border-radius:16px;padding:24px;max-width:360px;width:90%;">
+            <h3 style="margin:0 0 16px 0;text-align:center;">📋 使用须知</h3>
+            <div class="compliance-text" style="font-size:14px;color:#333;line-height:1.6;">
+                <p>本应用提供的技术分析数据仅供参考，不构成任何投资建议。</p>
+                <p>投资有风险，入市需谨慎。过往业绩不代表未来表现。</p>
+                <hr style="border:none;border-top:1px solid #eee;margin:15px 0;">
+                <p><strong>免费版包含：</strong></p>
+                <ul style="padding-left:20px;margin:10px 0;">
+                    <li>5个技术指标 (MA5/MA10/MA20/BOLL/RSI)</li>
+                    <li>5只自选股</li>
+                    <li>2天试用期体验全部功能</li>
+                </ul>
+            </div>
+            <button onclick="acceptCompliance()" style="width:100%;padding:12px;border:none;border-radius:8px;background:#007bff;color:white;font-size:16px;font-weight:bold;cursor:pointer;margin-top:16px;">
+                我已了解，开始使用
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="app-wrapper">
+    <div class="app-container">
+        <!-- 顶部导航 -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <div class="logo-icon">📊</div>
+                    <div class="app-title">股票分析工具</div>
+                    <span class="version-badge" id="versionBadge">免费版</span>
+                    <div id="trialBadge" class="trial-badge" style="display: none;">
+                        <span class="icon">⏱️</span>
+                        <span>试用期剩余 <strong id="trialDaysLeft">2</strong> 天</span>
+                        <div class="trial-progress-container">
+                            <div class="trial-progress-bar" id="trialProgress" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+                <nav class="main-nav">
+                    <a href="/" class="nav-link active">首页</a>
+                    <a href="/portfolio" class="nav-link">自选</a>
+                    <button onclick="showParamsModal()" class="btn-settings hidden" id="paramsBtn" title="参数设置">
+                        ⚙️
+                    </button>
+                    <button onclick="showUpgradeModal()" class="btn-upgrade" id="upgradeBtn">
+                        ⭐ 升级专业版
+                    </button>
+                </nav>
+            </div>
+        </header>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            
+            <!-- 市场温度计 -->
+            <section class="card market-thermometer" id="marketThermometer">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="title-icon">🌡️</span>
+                        市场温度计
+                    </h2>
+                    <button onclick="refreshMarket()" class="btn-icon" id="refreshBtn" title="刷新市场数据">
+                        🔄
+                    </button>
+                </div>
+                
+                <div class="thermometer-body" id="thermometerBody">
+                    <!-- 加载中状态 -->
+                    <div class="loading-state" id="marketLoading">
+                        <div class="spinner"></div>
+                        <p>正在分析市场环境...</p>
+                    </div>
+                    
+                    <!-- 温度显示（初始隐藏） -->
+                    <div class="temp-display hidden" id="tempDisplay">
+                        <div class="temp-icon-large" id="marketIcon">🟡</div>
+                        <div class="temp-info">
+                            <span class="temp-label" id="marketLabel">震荡市</span>
+                            <span class="temp-score" id="marketScore">65分</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 温度条 -->
+                    <div class="temp-bar-container hidden" id="tempBarContainer">
+                        <div class="temp-bar-track">
+                            <div class="temp-bar-fill" id="tempBar" style="width: 65%"></div>
+                            <div class="temp-bar-indicator" id="tempIndicator" style="left: 65%"></div>
+                        </div>
+                        <div class="temp-labels-row">
+                            <span class="temp-label-item weak">弱势</span>
+                            <span class="temp-label-item neutral">震荡</span>
+                            <span class="temp-label-item strong">强势</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 市场指标概览 -->
+                    <div class="market-metrics hidden" id="marketMetrics">
+                        <div class="metrics-grid">
+                            <div class="metric-item">
+                                <span class="metric-label">上证指数</span>
+                                <span class="metric-value" id="shIndex">--</span>
+                            </div>
+                            <div class="metric-item">
+                                <span class="metric-label">深证成指</span>
+                                <span class="metric-value" id="szIndex">--</span>
+                            </div>
+                            <div class="metric-item">
+                                <span class="metric-label">创业板指</span>
+                                <span class="metric-value" id="cybIndex">--</span>
+                            </div>
+                            <div class="metric-item">
+                                <span class="metric-label">涨跌比</span>
+                                <span class="metric-value" id="advanceDecline">--</span>
+                            </div>
+                        </div>
+                        <div class="market-pro-insight hidden" id="marketProInsight">
+                            <div class="pro-insight-header">
+                                <span class="mini-pro-badge">PRO</span>
+                                <span>专业版市场洞察</span>
+                            </div>
+                            <div class="pro-insight-content" id="proInsightContent">
+                                <span class="blurred-insight">市场资金流向 ●●●亿 | 北向资金 ●●●亿 | 波动率 ●●.●%</span>
+                                <button onclick="showUpgradeInfo()" class="insight-unlock-btn">解锁 →</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <p class="disclaimer-text">基于历史数据客观计算，不构成投资建议</p>
+                </div>
+            </section>
+
+            <!-- 股票查询区域 -->
+            <section class="card stock-query">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="title-icon">🔍</span>
+                        技术指标查询
+                    </h2>
+                </div>
+                
+                <div class="query-form">
+                    <div class="input-group">
+                        <input 
+                            type="text" 
+                            id="stockCodeInput" 
+                            placeholder="输入6位股票代码（如600519）"
+                            maxlength="6"
+                            pattern="[0-9]*"
+                            inputmode="numeric"
+                            autocomplete="off"
+                        >
+                        <button onclick="queryStock()" class="btn-primary" id="queryBtn">
+                            查询指标
+                        </button>
+                    </div>
+                    <div class="quick-actions-row">
+                        <button onclick="generateReport()" class="btn-secondary btn-small">
+                            📋 查看报告
+                        </button>
+                        <button onclick="clearResult()" class="btn-ghost btn-small">
+                            清空
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 查询结果区域 -->
+                <div id="dataStatusBadge" class="data-status-badge">
+                    <!-- JS动态填充 -->
+                </div>
+                <div id="queryResult" class="result-area hidden">
+                    <!-- 结果将通过JS动态填充 -->
+                </div>
+                
+                <!-- 空状态提示 -->
+                <div class="empty-state" id="emptyState">
+                    <div class="empty-icon">💡</div>
+                    <p>输入股票代码开始查询</p>
+                    <p class="empty-hint">支持沪深两市A股，提供17+技术指标分析</p>
+                </div>
+                
+                <!-- 默认推荐股票 -->
+                <div class="recommended-stocks" id="recommendedStocks">
+                    <h3 class="recommended-title">📋 参考股票</h3>
+                    <div class="recommended-grid" id="recommendedGrid">
+                        <!-- 动态填充 -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- 快速功能入口 -->
+            <section class="quick-actions">
+                <h2 class="section-title">⚡ 快速功能</h2>
+                <div class="action-grid">
+                    <a href="/portfolio" class="action-card">
+                        <div class="action-icon">⭐</div>
+                        <h3 class="action-title">我的自选</h3>
+                        <p class="action-desc" id="portfolioCount">管理你的自选股票列表</p>
+                    </a>
+                    <div class="action-card" onclick="showIndicatorList()">
+                        <div class="action-icon">📈</div>
+                        <h3 class="action-title">指标说明</h3>
+                        <p class="action-desc">查看17+技术指标的详细介绍</p>
+                    </div>
+                    <div class="action-card pro-card" onclick="showUpgradeInfo()">
+                        <div class="action-icon">👑</div>
+                        <h3 class="action-title">专业版</h3>
+                        <p class="action-desc">解锁全部高级功能</p>
+                        <span class="pro-tag">¥12</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 最近查询历史 -->
+            <section class="recent-queries card hidden" id="recentQueries">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="title-icon">🕐</span>
+                        最近查询
+                    </h2>
+                    <button onclick="clearRecentQueries()" class="btn-text btn-small">清除</button>
+                </div>
+                <div class="recent-list" id="recentList">
+                    <!-- 动态填充 -->
+                </div>
+            </section>
+        </main>
+
+        <!-- 底部导航栏 (移动端) -->
+        <nav class="bottom-nav">
+            <a href="/" class="bottom-nav-item active">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-label">首页</span>
+            </a>
+            <a href="/portfolio" class="bottom-nav-item">
+                <span class="nav-icon">⭐</span>
+                <span class="nav-label">自选</span>
+            </a>
+            <a href="#" class="bottom-nav-item" onclick="showUpgradeInfo()">
+                <span class="nav-icon">👑</span>
+                <span class="nav-label">升级</span>
+            </a>
+            <a href="#" class="bottom-nav-item" onclick="showAboutModal()">
+                <span class="nav-icon">ℹ️</span>
+                <span class="nav-label">关于</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- 免责声明 -->
+    <footer class="app-footer">
+        <div class="disclaimer-box">
+            <strong>⚠️ 重要声明</strong>
+            <p>本应用仅提供技术指标的客观数值计算与状态描述。</p>
+            <p>所有输出均为纯技术数据呈现，<strong>不构成任何投资建议、操作指引或收益承诺</strong>。</p>
+            <p>投资有风险，入市需谨慎。用户需自主做出投资决策。</p>
+        </div>
+        <p class="copyright">© 2026 股票分析工具 v2.0 | 合规运营</p>
+        <p class="contact-info">
+            <a href="mailto:nimeipo@126.com">联系开发者</a> · 
+            <span>版本 2.0.0</span>
+        </p>
+    </footer>
+</div>
+
+<!-- 升级弹窗 -->
+<div class="modal-overlay hidden" id="upgradeModal">
+    <div class="modal-content upgrade-modal">
+        <div class="modal-header upgrade-header">
+            <h3>👑 解锁专业版</h3>
+            <button onclick="closeModal('upgradeModal')" class="modal-close">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="upgrade-price">
+                <span class="price-symbol">¥</span>
+                <span class="price-amount">12</span>
+                <span class="price-period">一次购买 · 永久使用</span>
+            </div>
+            
+            <div class="upgrade-compare">
+                <table class="compare-table">
+                    <thead>
+                        <tr>
+                            <th>功能</th>
+                            <th class="free-col">免费版</th>
+                            <th class="pro-col">专业版</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>技术指标</td>
+                            <td class="free-col">5个基础</td>
+                            <td class="pro-col"><strong>17+全部</strong></td>
+                        </tr>
+                        <tr>
+                            <td>自选股数量</td>
+                            <td class="free-col">5只</td>
+                            <td class="pro-col"><strong>10只</strong></td>
+                        </tr>
+                        <tr>
+                            <td>数据源</td>
+                            <td class="free-col">2个(本地直连)</td>
+                            <td class="pro-col"><strong>FC云端计算</strong></td>
+                        </tr>
+                        <tr>
+                            <td>综合评分</td>
+                            <td class="free-col">基础评分</td>
+                            <td class="pro-col"><strong>详细分析</strong></td>
+                        </tr>
+                        <tr>
+                            <td>分析报告</td>
+                            <td class="free-col">简版</td>
+                            <td class="pro-col"><strong>完整版</strong></td>
+                        </tr>
+                        <tr>
+                            <td>广告</td>
+                            <td class="free-col">有</td>
+                            <td class="pro-col"><strong>无</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="upgrade-highlight">
+                <p>🔥 专业版指标值清晰可见，免费版仅显示 ●●.●●</p>
+                <p>🔥 AI根据市场环境自动调整超买超卖阈值</p>
+                <p>🔥 12个高级指标解锁：KDJ、WR、CCI、BIAS、OBV、DMI、SAR...</p>
+            </div>
+            
+            <div class="upgrade-note">
+                💰 ¥12 = 一杯咖啡的钱，终身使用，无需续费
+            </div>
+        </div>
+        <div class="modal-footer upgrade-footer">
+            <button onclick="purchasePro()" class="btn-primary btn-block btn-upgrade">⭐ 立即解锁专业版</button>
+            <button onclick="closeModal('upgradeModal')" class="btn-ghost btn-block">稍后再说</button>
+            <button onclick="restorePurchase()" class="btn-ghost btn-block btn-restore">恢复购买</button>
+        </div>
+    </div>
+</div>
+
+<!-- 参数设置弹窗 -->
+<div class="modal-overlay hidden" id="paramsModal">
+    <div class="modal-content params-modal">
+        <div class="modal-header">
+            <h3>⚙️ 指标参数设置</h3>
+            <button onclick="closeModal('paramsModal')" class="modal-close">×</button>
+        </div>
+        <div class="modal-body">
+            <p class="params-note">以下参数将影响技术指标的计算结果</p>
+            
+            <div class="params-section">
+                <h4>摆动类指标</h4>
+                
+                <div class="param-item">
+                    <label>RSI周期</label>
+                    <div class="param-control">
+                        <input type="range" id="rsi_period" min="5" max="30" value="14" oninput="updateParamDisplay(this)">
+                        <span class="param-value" id="rsi_period_value">14</span>
+                    </div>
+                </div>
+                
+                <div class="param-item">
+                    <label>KDJ-N</label>
+                    <div class="param-control">
+                        <input type="range" id="kdj_n" min="5" max="30" value="9" oninput="updateParamDisplay(this)">
+                        <span class="param-value" id="kdj_n_value">9</span>
+                    </div>
+                </div>
+                
+                <div class="param-item">
+                    <label>KDJ-M1</label>
+                    <div class="param-control">
+                        <input type="range" id="kdj_m1" min="1" max="10" value="3" oninput="updateParamDisplay(this)">
+                        <span class="param-value" id="kdj_m1_value">3</span>
+                    </div>
+                </div>
+                
+                <div class="param-item">
+                    <label>KDJ-M2</label>
+                    <div class="param-control">
+                        <input type="range" id="kdj_m2" min="1" max="10" value="3" oninput="updateParamDisplay(this)">
+                        <span class="param-value" id="kdj_m2_value">3</span>
+                    </div>
+                </div>
+                
+                <div class="param-item">
+                    <label>WR周期</label>
+                    <div class="param-control">
+                        <input type="range" id="wr_period" min="5" max="30" value="14" oninput="updateParamDisplay(this)">
+                        <span class="param-value" id="wr_period_value">14</span>
+                    </div>
+                </div>
+                
+                <div class="param-item">
+                    <label>CCI周期</label>
+                    <div class="param-control">
+                        <input type="range" id="cci_period" min="10" max="40" value="20" oninput="updateParamDisplay(this)">
+                        <span class="param-value" id="cci_period_value">20</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="params-section">
+                <h4>趋势类指标</h4>
+                
+                <div class="param-item">
+                    <label>BOLL周期</label>
+                    <div class="param-control">
+                        <input type="range" id="boll_period" min="10" max="30" value="20" oninput="updateParamDisplay(this)">
+                        <span class="param-value" id="boll_period_value">20</span>
+                    </div>
+                </div>
+                
+                <div class="param-item">
+                    <label>BOLL标准差</label>
+                    <div class="param-control">
+                        <input type="range" id="boll_std_dev" min="1.0" max="3.0" step="0.1" value="2.0" oninput="updateParamDisplay(this)">
+                        <span class="param-value" id="boll_std_dev_value">2.0</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="params-section">
+                <h4>价格类指标</h4>
+                
+                <div class="param-item">
+                    <label>ATR周期</label>
+                    <div class="param-control">
+                        <input type="range" id="atr_period" min="5" max="30" value="14" oninput="updateParamDisplay(this)">
+                        <span class="param-value" id="atr_period_value">14</span>
+                    </div>
+                </div>
+            </div>
+            
+            <p class="disclaimer-text">参数修改后将在下次查询时生效</p>
+        </div>
+        <div class="modal-footer">
+            <button onclick="resetParams()" class="btn-secondary">恢复默认</button>
+            <button onclick="saveParams()" class="btn-primary">保存设置</button>
+        </div>
+    </div>
+</div>
+
+<!-- 指标说明弹窗 -->
+<div class="modal-overlay hidden" id="indicatorModal">
+    <div class="modal-content indicator-modal">
+        <div class="modal-header">
+            <h3>📊 技术指标说明</h3>
+            <button onclick="closeModal('indicatorModal')" class="modal-close">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="indicator-category">
+                <h4>趋势类指标 (5个)</h4>
+                <ul>
+                    <li><strong>MA</strong> - 移动平均线，判断趋势方向</li>
+                    <li><strong>EMA</strong> - 指数移动平均线，更灵敏</li>
+                    <li><strong>BOLL</strong> - 布林带，识别价格波动区间</li>
+                    <li><strong>DMI</strong> - 趋向指标，衡量趋势强度</li>
+                    <li><strong>SAR</strong> - 抛物线指标，止损止盈参考</li>
+                </ul>
+            </div>
+            <div class="indicator-category">
+                <h4>摆动类指标 (5个)</h4>
+                <ul>
+                    <li><strong>RSI</strong> - 相对强弱指标，衡量多空力量对比</li>
+                    <li><strong>KDJ</strong> - 随机指标，短线交易信号</li>
+                    <li><strong>WR</strong> - 威廉指标，衡量当前价格相对位置</li>
+                    <li><strong>CCI</strong> - 顺势指标，异常波动检测</li>
+                    <li><strong>BIAS</strong> - 乖离率，偏离均线程度</li>
+                </ul>
+            </div>
+            <div class="indicator-category">
+                <h4>成交量类指标 (5个)</h4>
+                <ul>
+                    <li><strong>VOL</strong> - 成交量分析</li>
+                    <li><strong>OBV</strong> - 能能量潮，量价关系</li>
+                    <li><strong>VR</strong> - 成交量比率，活跃度</li>
+                    <li><strong>量比</strong> - 当日/近5日均量比</li>
+                    <li><strong>MAVOL</strong> - 成交量均线</li>
+                </ul>
+            </div>
+            <div class="indicator-category">
+                <h4>价格形态类 (2个)</h4>
+                <ul>
+                    <li><strong>ATR</strong> - 平均真实波幅，波动性测量</li>
+                    <li><strong>TR</strong> - 真实波幅</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/static/js/app_v2.js"></script>
+</body>
+</html>
