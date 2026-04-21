@@ -441,3 +441,90 @@ push 代码
 > *"没有 Mac 也能上架 iOS App，这不是魔法，这是工程。"*
 >
 > — 2026年4月14日 凌晨
+
+---
+
+## 十一、审核被拒与修复（2026-04-21）
+
+### 11.1 拒绝原因
+
+**Guideline 2.1(b) - Performance - App Completeness**
+- 内购产品 `com.stockanalysis.pro.lifetime` 未提交审核
+- App中包含付费内容引用，但内购产品在App Store Connect后台没有提交审核
+
+**Guideline 2.3.3 - Performance - Accurate Metadata**
+- 缺少13英寸iPad截图
+- 当前只有iPhone截图，不符合Apple要求
+
+### 11.2 修复方案
+
+#### 修改内容
+
+1. **添加iPad截图生成**
+   - 修改 `build-ios.yml`，在创建模拟器步骤中添加iPad模拟器创建
+   - 支持iPad Air 13-inch、iPad Pro 13-inch等多种iPad设备
+   - 在截图步骤中添加iPad截图生成（4张）
+
+2. **添加内购产品截图**
+   - 新增 `Take IAP Screenshots` 步骤
+   - 生成3张内购产品截图：
+     - `iap_01_home_upgrade.png`：首页升级按钮
+     - `iap_02_settings_upgrade.png`：设置页升级选项
+     - `iap_03_upgrade_card.png`：升级卡片
+
+3. **上传截图为Artifact**
+   - iPhone截图：`App-Screenshots` artifact
+   - iPad截图：`App-Screenshots` artifact
+   - 内购截图：`IAP-Screenshots` artifact
+
+#### 文件修改
+
+| 文件 | 修改内容 |
+|------|---------|
+| `.github/workflows/build-ios.yml` | 添加iPad模拟器创建、iPad截图生成、内购产品截图生成 |
+
+### 11.3 后续操作
+
+1. **重新运行GitHub Actions**
+   - 触发workflow，生成新的截图和IPA
+   - 下载截图artifacts
+
+2. **上传iPad截图到App Store Connect**
+   - 登录App Store Connect
+   - 进入App → 媒体管理
+   - 上传13英寸iPad截图（4张）
+
+3. **提交内购产品审核**
+   - 登录App Store Connect
+   - 进入App → 功能 → App内购买项目
+   - 找到 `com.stockanalysis.pro.lifetime`
+   - 上传内购产品截图（3张）
+   - 填写产品描述和审核备注
+   - 提交审核
+
+4. **上传新的二进制文件**
+   - 等待GitHub Actions完成
+   - 新IPA自动上传到App Store Connect
+   - 提交新的构建版本审核
+
+### 11.4 经验总结
+
+1. **内购产品需要单独提交审核**
+   - App主程序审核 ≠ 内购产品审核
+   - 两者是分开的审核流程
+   - 必须在App Store Connect后台提交内购产品审核
+
+2. **iPad截图是必需的**
+   - Apple要求支持iPad的App必须提供iPad截图
+   - 13英寸iPad截图是常见要求
+
+3. **审核人员使用沙盒测试账号**
+   - 不需要真实付费
+   - 可以测试完整购买流程
+   - 关键是内购产品要提交审核
+
+---
+
+> *"审核被拒不可怕，可怕的是不知道为什么被拒。"*
+>
+> — 2026年4月21日
