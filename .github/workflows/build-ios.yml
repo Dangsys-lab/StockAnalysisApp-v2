@@ -325,11 +325,40 @@ jobs:
         PROVISION_BASE64: ${{ secrets.PROVISION_BASE64 }}
       run: |
         mkdir -p ~/profiles
-        echo "$PROVISION_BASE64" | base64 -d > ~/profiles/profile.mobileprovision
         mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+        
+        if [ -z "$PROVISION_BASE64" ]; then
+          echo "❌ PROVISION_BASE64 secret is not set"
+          exit 1
+        fi
+        
+        echo "$PROVISION_BASE64" | base64 -d > ~/profiles/profile.mobileprovision
+        
+        if [ ! -f ~/profiles/profile.mobileprovision ]; then
+          echo "❌ Failed to create profile.mobileprovision"
+          exit 1
+        fi
+        
+        FILE_SIZE=$(stat -f%z ~/profiles/profile.mobileprovision)
+        if [ "$FILE_SIZE" -eq 0 ]; then
+          echo "❌ profile.mobileprovision is empty"
+          exit 1
+        fi
+        
+        echo "✅ profile.mobileprovision created (size: $FILE_SIZE bytes)"
+        
         UUID=$(security cms -D -i ~/profiles/profile.mobileprovision 2>/dev/null | plutil -extract UUID raw -)
-        echo "Profile UUID: $UUID"
+        
+        if [ -z "$UUID" ]; then
+          echo "❌ Failed to extract UUID from profile"
+          exit 1
+        fi
+        
+        echo "✅ Profile UUID: $UUID"
         cp ~/profiles/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
+        echo "✅ Provisioning Profile installed to ~/Library/MobileDevice/Provisioning Profiles/$UUID.mobileprovision"
+        
+        ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
 
     - name: Archive for Distribution
       working-directory: ios
