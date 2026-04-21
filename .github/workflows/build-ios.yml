@@ -348,6 +348,7 @@ jobs:
         echo "✅ profile.mobileprovision created (size: $FILE_SIZE bytes)"
         
         UUID=$(security cms -D -i ~/profiles/profile.mobileprovision 2>/dev/null | plutil -extract UUID raw -)
+        PROFILE_NAME=$(security cms -D -i ~/profiles/profile.mobileprovision 2>/dev/null | plutil -extract Name raw -)
         
         if [ -z "$UUID" ]; then
           echo "❌ Failed to extract UUID from profile"
@@ -355,10 +356,15 @@ jobs:
         fi
         
         echo "✅ Profile UUID: $UUID"
+        echo "✅ Profile Name: $PROFILE_NAME"
+        
         cp ~/profiles/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
         echo "✅ Provisioning Profile installed to ~/Library/MobileDevice/Provisioning Profiles/$UUID.mobileprovision"
         
         ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
+        
+        echo "PROFILE_UUID=$UUID" >> $GITHUB_ENV
+        echo "PROFILE_NAME=$PROFILE_NAME" >> $GITHUB_ENV
 
     - name: Archive for Distribution
       working-directory: ios
@@ -374,13 +380,15 @@ jobs:
           CODE_SIGNING_ALLOWED=YES \
           CODE_SIGN_STYLE=Manual \
           DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} \
-          PROVISIONING_PROFILE_SPECIFIER="StockAnalyzer_Dist" \
+          PROVISIONING_PROFILE_SPECIFIER="${{ env.PROFILE_NAME }}" \
+          PROVISIONING_PROFILE_UUID="${{ env.PROFILE_UUID }}" \
           -allowProvisioningUpdates \
           archive
 
     - name: Export IPA
       working-directory: ios
       run: |
+        sed -i '' "s/StockAnalyzer_Dist/${{ env.PROFILE_NAME }}/g" StockAnalysisApp/ExportOptions.plist
         xcodebuild \
           -exportArchive \
           -archivePath build/StockAnalysisApp.xcarchive \
