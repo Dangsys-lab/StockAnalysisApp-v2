@@ -156,11 +156,11 @@ jobs:
         
         # iPad screenshots
         echo "📱 Taking iPad screenshots..."
-        IPAD_SIMULATOR_ID=$(xcrun simctl list devices available | grep "iPad 13-inch" | head -1 | grep -o -E '[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}')
+        IPAD_SIMULATOR_ID=$(xcrun simctl list devices available | grep "iPad 13-inch" | head -1 | grep -o -E '[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}' || true)
         
         if [ -z "$IPAD_SIMULATOR_ID" ]; then
           echo "⚠️ iPad 13-inch not found, trying any iPad..."
-          IPAD_SIMULATOR_ID=$(xcrun simctl list devices available | grep "iPad" | head -1 | grep -o -E '[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}')
+          IPAD_SIMULATOR_ID=$(xcrun simctl list devices available | grep "iPad" | head -1 | grep -o -E '[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}' || true)
         fi
         
         if [ -n "$IPAD_SIMULATOR_ID" ]; then
@@ -219,14 +219,14 @@ jobs:
         echo "📦 App path: $APP_PATH"
         
         # Use iPhone for IAP screenshots
-        IPHONE_SIMULATOR_ID=$(xcrun simctl list devices available | grep "iPhone 16 Pro Max" | head -1 | grep -o -E '[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}')
+        IPHONE_SIMULATOR_ID=$(xcrun simctl list devices available | grep "iPhone 16 Pro Max" | head -1 | grep -o -E '[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}' || true)
         
         if [ -z "$IPHONE_SIMULATOR_ID" ]; then
-          IPHONE_SIMULATOR_ID=$(xcrun simctl list devices available | grep "iPhone 16 Plus" | head -1 | grep -o -E '[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}')
+          IPHONE_SIMULATOR_ID=$(xcrun simctl list devices available | grep "iPhone 16 Plus" | head -1 | grep -o -E '[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}' || true)
         fi
         
         if [ -z "$IPHONE_SIMULATOR_ID" ]; then
-          IPHONE_SIMULATOR_ID=$(xcrun simctl list devices available | grep "iPhone 16" | grep -v "Pro" | grep -v "Plus" | head -1 | grep -o -E '[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}')
+          IPHONE_SIMULATOR_ID=$(xcrun simctl list devices available | grep "iPhone 16" | grep -v "Pro" | grep -v "Plus" | head -1 | grep -o -E '[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12]' || true)
         fi
         
         if [ -n "$IPHONE_SIMULATOR_ID" ]; then
