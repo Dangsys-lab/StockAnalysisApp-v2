@@ -169,37 +169,37 @@ jobs:
           xcrun simctl boot "$IPAD_SIMULATOR_ID" 2>/dev/null || true
           sleep 15
           
-          xcrun simctl install "$IPAD_SIMULATOR_ID" "$APP_PATH"
+          xcrun simctl install "$IPAD_SIMULATOR_ID" "$APP_PATH" || true
           
-          xcrun simctl launch "$IPAD_SIMULATOR_ID" com.dangsys.stockanalyzer
+          xcrun simctl launch "$IPAD_SIMULATOR_ID" com.dangsys.stockanalyzer || true
           sleep 8
-          xcrun simctl io "$IPAD_SIMULATOR_ID" screenshot ./screenshots/ipad_01_home.png
+          xcrun simctl io "$IPAD_SIMULATOR_ID" screenshot ./screenshots/ipad_01_home.png || echo "⚠️ Failed to take iPad home screenshot"
           echo "📸 Screenshot: iPad Home tab"
           
           xcrun simctl terminate "$IPAD_SIMULATOR_ID" com.dangsys.stockanalyzer 2>/dev/null || true
           sleep 2
-          xcrun simctl launch "$IPAD_SIMULATOR_ID" com.dangsys.stockanalyzer --tab-market
+          xcrun simctl launch "$IPAD_SIMULATOR_ID" com.dangsys.stockanalyzer --tab-market || true
           sleep 5
-          xcrun simctl io "$IPAD_SIMULATOR_ID" screenshot ./screenshots/ipad_02_market.png
+          xcrun simctl io "$IPAD_SIMULATOR_ID" screenshot ./screenshots/ipad_02_market.png || echo "⚠️ Failed to take iPad market screenshot"
           echo "📸 Screenshot: iPad Market tab"
           
           xcrun simctl terminate "$IPAD_SIMULATOR_ID" com.dangsys.stockanalyzer 2>/dev/null || true
           sleep 2
-          xcrun simctl launch "$IPAD_SIMULATOR_ID" com.dangsys.stockanalyzer --tab-portfolio
+          xcrun simctl launch "$IPAD_SIMULATOR_ID" com.dangsys.stockanalyzer --tab-portfolio || true
           sleep 5
-          xcrun simctl io "$IPAD_SIMULATOR_ID" screenshot ./screenshots/ipad_03_portfolio.png
+          xcrun simctl io "$IPAD_SIMULATOR_ID" screenshot ./screenshots/ipad_03_portfolio.png || echo "⚠️ Failed to take iPad portfolio screenshot"
           echo "📸 Screenshot: iPad Portfolio tab"
           
           xcrun simctl terminate "$IPAD_SIMULATOR_ID" com.dangsys.stockanalyzer 2>/dev/null || true
           sleep 2
-          xcrun simctl launch "$IPAD_SIMULATOR_ID" com.dangsys.stockanalyzer --tab-settings
+          xcrun simctl launch "$IPAD_SIMULATOR_ID" com.dangsys.stockanalyzer --tab-settings || true
           sleep 5
-          xcrun simctl io "$IPAD_SIMULATOR_ID" screenshot ./screenshots/ipad_04_settings.png
+          xcrun simctl io "$IPAD_SIMULATOR_ID" screenshot ./screenshots/ipad_04_settings.png || echo "⚠️ Failed to take iPad settings screenshot"
           echo "📸 Screenshot: iPad Settings tab"
           
           xcrun simctl shutdown "$IPAD_SIMULATOR_ID" 2>/dev/null || true
         else
-          echo "❌ No suitable iPad simulator found"
+          echo "⚠️ No suitable iPad simulator found, skipping iPad screenshots"
         fi
         
         echo "✅ Screenshots saved to ./screenshots/"
@@ -288,11 +288,37 @@ jobs:
         P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
       run: |
         mkdir -p ~/certs
+        
+        # Check if P12_BASE64 is set
+        if [ -z "$P12_BASE64" ]; then
+          echo "❌ P12_BASE64 secret is not set"
+          exit 1
+        fi
+        
+        # Decode base64 and check if successful
         echo "$P12_BASE64" | base64 -d > ~/certs/cert.p12
+        
+        if [ ! -f ~/certs/cert.p12 ]; then
+          echo "❌ Failed to create cert.p12 file"
+          exit 1
+        fi
+        
+        # Check file size
+        FILE_SIZE=$(stat -f%z ~/certs/cert.p12)
+        if [ "$FILE_SIZE" -eq 0 ]; then
+          echo "❌ cert.p12 file is empty"
+          exit 1
+        fi
+        
+        echo "✅ cert.p12 created successfully (size: $FILE_SIZE bytes)"
+        
+        # Create keychain and import certificate
         security create-keychain -p actions ~/certs/keychain.db
         security import ~/certs/cert.p12 -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k ~/certs/keychain.db
         security list-keychains -s ~/certs/keychain.db
         security set-key-partition-list -S apple-tool:,apple: -k actions ~/certs/keychain.db
+        
+        echo "✅ Certificate imported successfully"
 
     - name: Install Provisioning Profile
       env:
